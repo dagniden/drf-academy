@@ -1,15 +1,16 @@
+import random
+from datetime import timedelta
 from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from django.utils import timezone
-from datetime import timedelta
-import random
 
-from users.models import User, Payment
 from academy.models import Course, Lesson
+from users.models import Payment, User
 
 
 class Command(BaseCommand):
-    help = 'Заполняет таблицу платежей тестовыми данными'
+    help = "Заполняет таблицу платежей тестовыми данными"
 
     def handle(self, *args, **options):
         # Получаем существующие объекты
@@ -18,16 +19,24 @@ class Command(BaseCommand):
         lessons = Lesson.objects.all()
 
         if not users.exists():
-            self.stdout.write(self.style.ERROR('Нет пользователей в базе данных. Создайте хотя бы одного пользователя.'))
+            self.stdout.write(
+                self.style.ERROR(
+                    "Нет пользователей в базе данных. Создайте хотя бы одного пользователя."
+                )
+            )
             return
 
         if not courses.exists() and not lessons.exists():
-            self.stdout.write(self.style.ERROR('Нет курсов и уроков в базе данных. Создайте хотя бы один курс или урок.'))
+            self.stdout.write(
+                self.style.ERROR(
+                    "Нет курсов и уроков в базе данных. Создайте хотя бы один курс или урок."
+                )
+            )
             return
 
         # Удаляем старые платежи (опционально)
         Payment.objects.all().delete()
-        self.stdout.write(self.style.WARNING('Все существующие платежи удалены'))
+        self.stdout.write(self.style.WARNING("Все существующие платежи удалены"))
 
         # Создаем 10 платежей
         payments_created = 0
@@ -48,7 +57,7 @@ class Command(BaseCommand):
                     user=user,
                     course=course,
                     amount=amount,
-                    payment_method=payment_method
+                    payment_method=payment_method,
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -62,7 +71,7 @@ class Command(BaseCommand):
                     user=user,
                     lesson=lesson,
                     amount=amount,
-                    payment_method=payment_method
+                    payment_method=payment_method,
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -76,7 +85,7 @@ class Command(BaseCommand):
                     user=user,
                     course=course,
                     amount=amount,
-                    payment_method=payment_method
+                    payment_method=payment_method,
                 )
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -87,5 +96,5 @@ class Command(BaseCommand):
             payments_created += 1
 
         self.stdout.write(
-            self.style.SUCCESS(f'\n✓ Успешно создано {payments_created} платежей')
+            self.style.SUCCESS(f"\n✓ Успешно создано {payments_created} платежей")
         )

@@ -1,6 +1,6 @@
 from rest_framework import serializers
 
-from academy.models import Lesson, Course
+from academy.models import Course, Lesson
 from users.models import Payment
 
 
@@ -16,7 +16,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ['id', 'title', 'description', 'lessons_count', 'lessons']
+        fields = ["id", "title", "description", "lessons_count", "lessons"]
 
     def get_lessons_count(self, instance):
         return instance.lessons.count()

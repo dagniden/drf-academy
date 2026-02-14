@@ -1,7 +1,7 @@
 from django.contrib.auth.models import AbstractUser
+from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
-from django.core.exceptions import ValidationError
 
 from academy.models import Course, Lesson
 
@@ -28,10 +28,18 @@ class Payment(models.Model):
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
     payment_date = models.DateTimeField(auto_now_add=True)
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="payments", null=True, blank=True)
-    lesson = models.ForeignKey(Lesson, on_delete=models.CASCADE, related_name="payments", null=True, blank=True)
-    amount = models.DecimalField(decimal_places=2, max_digits=10, validators=[MinValueValidator(0.0)])
-    payment_method = models.CharField(max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.CASH)
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+    )
+    lesson = models.ForeignKey(
+        Lesson, on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+    )
+    amount = models.DecimalField(
+        decimal_places=2, max_digits=10, validators=[MinValueValidator(0.0)]
+    )
+    payment_method = models.CharField(
+        max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.CASH
+    )
 
     def clean(self):
         super().clean()
