@@ -3,8 +3,6 @@ from django.core.exceptions import ValidationError
 from django.core.validators import MinValueValidator
 from django.db import models
 
-from academy.models import Course, Lesson
-
 
 class User(AbstractUser):
     email = models.EmailField(unique=True)
@@ -29,10 +27,18 @@ class Payment(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
     payment_date = models.DateTimeField(auto_now_add=True)
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+        "academy.Course",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True,
     )
     lesson = models.ForeignKey(
-        Lesson, on_delete=models.CASCADE, related_name="payments", null=True, blank=True
+        "academy.Lesson",
+        on_delete=models.CASCADE,
+        related_name="payments",
+        null=True,
+        blank=True,
     )
     amount = models.DecimalField(
         decimal_places=2, max_digits=10, validators=[MinValueValidator(0.0)]

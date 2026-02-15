@@ -12,7 +12,8 @@ class Course(models.Model):
         null=True,
         blank=True,
         verbose_name="Владелец",
-        help_text="Укажите владельца курса")
+        help_text="Укажите владельца курса",
+    )
 
     def __str__(self):
         return self.title
@@ -34,7 +35,8 @@ class Lesson(models.Model):
         null=True,
         blank=True,
         verbose_name="Владелец",
-        help_text="Укажите владельца урока")
+        help_text="Укажите владельца урока",
+    )
 
     def __str__(self):
         return self.title
