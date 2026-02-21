@@ -4,6 +4,7 @@ from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 
 from academy.models import Course, Lesson
+from academy.paginators import LessonCoursePagination
 from academy.serializers import (CourseSerializer, LessonSerializer,
                                  PaymentSerializer)
 from users.models import Payment
@@ -13,6 +14,7 @@ from users.permissions import IsModerator, IsOwner
 class CourseViewSet(viewsets.ModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
+    pagination_class = LessonCoursePagination
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -41,6 +43,7 @@ class LessonListAPIView(generics.ListAPIView):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = LessonCoursePagination
 
 
 class LessonRetrieveAPIView(generics.RetrieveAPIView):
