@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from academy.models import Course, Lesson
+from academy.validators import URLValidator
 from users.models import Payment
 
 
@@ -8,6 +9,9 @@ class LessonSerializer(serializers.ModelSerializer):
     class Meta:
         model = Lesson
         fields = "__all__"
+        validators = [
+            URLValidator(field="video_url")
+        ]
 
 
 class CourseSerializer(serializers.ModelSerializer):
