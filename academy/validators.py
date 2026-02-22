@@ -1,5 +1,6 @@
-from rest_framework import serializers
 import re
+
+from rest_framework import serializers
 
 
 class URLValidator:
@@ -7,7 +8,7 @@ class URLValidator:
         self.field = field
 
     def __call__(self, value):
-        pattern = re.compile(r'https?://(www\.)?youtube\.com')
+        pattern = re.compile(r"https?://(www\.)?youtube\.com")
         tmp_val = dict(value).get(self.field)
 
         if tmp_val and not bool(pattern.match(tmp_val)):
