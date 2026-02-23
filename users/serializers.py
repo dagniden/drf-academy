@@ -5,6 +5,8 @@ from users.models import User
 
 
 class UserSerializer(ModelSerializer):
+    """Пользователь: регистрация и просмотр профиля. Пароль передаётся только при записи."""
+
     class Meta:
         model = User
         fields = ["id", "username", "email", "password"]
@@ -20,4 +22,6 @@ class UserSerializer(ModelSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """JWT-аутентификация по email вместо username."""
+
     username_field = User.USERNAME_FIELD

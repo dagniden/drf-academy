@@ -3,16 +3,16 @@ from django.db import models
 
 
 class Course(models.Model):
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    image = models.ImageField(upload_to="avatars/", null=True, blank=True)
+    title = models.CharField(max_length=100, help_text='Название курса')
+    description = models.TextField(help_text='Описание курса')
+    image = models.ImageField(upload_to="avatars/", null=True, blank=True, help_text='Изображение курса')
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Владелец",
-        help_text="Укажите владельца курса",
+        help_text="Автор курса",
     )
 
     def __str__(self):
@@ -24,18 +24,18 @@ class Course(models.Model):
 
 
 class Lesson(models.Model):
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons")
-    title = models.CharField(max_length=100)
-    description = models.TextField()
-    image = models.ImageField(upload_to="avatars/", null=True, blank=True)
-    video_url = models.TextField(blank=True, null=True)
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="lessons", help_text='Курс')
+    title = models.CharField(max_length=100, help_text='Название урока')
+    description = models.TextField(help_text='Описание урока')
+    image = models.ImageField(upload_to="avatars/", null=True, blank=True, help_text='Изображение урока')
+    video_url = models.TextField(blank=True, null=True, help_text='Ссылка на видео урока')
     owner = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.SET_NULL,
         null=True,
         blank=True,
         verbose_name="Владелец",
-        help_text="Укажите владельца урока",
+        help_text="Автор урока",
     )
 
     def __str__(self):
@@ -48,10 +48,10 @@ class Lesson(models.Model):
 
 class Subscription(models.Model):
     course = models.ForeignKey(
-        Course, on_delete=models.CASCADE, related_name="subscriptions"
+        Course, on_delete=models.CASCADE, related_name="subscriptions", help_text='Курс'
     )
     user = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscriptions"
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="subscriptions", help_text='Пользователь'
     )
 
     def __str__(self):

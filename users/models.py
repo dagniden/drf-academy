@@ -5,10 +5,10 @@ from django.db import models
 
 
 class User(AbstractUser):
-    email = models.EmailField(unique=True)
-    phone_number = models.CharField(max_length=15, blank=True, null=True)
-    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True)
-    city = models.CharField(max_length=100, blank=True, null=True)
+    email = models.EmailField(unique=True, help_text='Email пользователя')
+    phone_number = models.CharField(max_length=15, blank=True, null=True, help_text='Номер телефона пользователя')
+    avatar = models.ImageField(upload_to="avatars/", null=True, blank=True, help_text='Аватар пользователя')
+    city = models.CharField(max_length=100, blank=True, null=True, help_text='Город пользователя')
 
     USERNAME_FIELD = "email"
     REQUIRED_FIELDS = [
@@ -24,14 +24,25 @@ class Payment(models.Model):
         CASH = "cash", "Наличные"
         TRANSFER = "transfer", "Перевод"
 
-    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="payments")
-    payment_date = models.DateTimeField(auto_now_add=True)
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="payments",
+        help_text='Пользователь'
+    )
+
+    payment_date = models.DateTimeField(
+        auto_now_add=True,
+        help_text='Дата платежа'
+    )
+
     course = models.ForeignKey(
         "academy.Course",
         on_delete=models.CASCADE,
         related_name="payments",
         null=True,
         blank=True,
+        help_text='Курс'
     )
     lesson = models.ForeignKey(
         "academy.Lesson",
@@ -39,12 +50,20 @@ class Payment(models.Model):
         related_name="payments",
         null=True,
         blank=True,
+        help_text='Урок'
     )
+
     amount = models.DecimalField(
-        decimal_places=2, max_digits=10, validators=[MinValueValidator(0.0)]
+        decimal_places=2,
+        max_digits=10,
+        validators=[MinValueValidator(0.0)],
+        help_text='Сумма платежа'
     )
+
     payment_method = models.CharField(
-        max_length=20, choices=PaymentMethod.choices, default=PaymentMethod.CASH
+        max_length=20,
+        choices=PaymentMethod.choices,
+        default=PaymentMethod.CASH
     )
 
     def clean(self):

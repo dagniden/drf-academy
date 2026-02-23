@@ -6,6 +6,8 @@ from users.models import Payment
 
 
 class LessonSerializer(serializers.ModelSerializer):
+    """Урок: базовые поля + валидация ссылки на YouTube-видео."""
+
     class Meta:
         model = Lesson
         fields = "__all__"
@@ -13,6 +15,7 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    """Полное представление курса с вложенными уроками и статусом подписки."""
     lessons_count = serializers.SerializerMethodField()
     lessons = LessonSerializer(many=True, read_only=True)
     is_subscribed = serializers.SerializerMethodField(read_only=True)
@@ -38,6 +41,8 @@ class CourseSerializer(serializers.ModelSerializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    """Платёж: содержит пользователя, курс или урок, сумму и способ оплаты."""
+
     class Meta:
         model = Payment
         fields = "__all__"
