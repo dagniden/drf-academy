@@ -1,6 +1,7 @@
 from rest_framework import serializers
 
 from academy.models import Course, Lesson, Subscription
+from academy.services import StripeService
 from academy.validators import URLValidator
 from users.models import Payment
 
@@ -42,7 +43,18 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     """Платёж: содержит пользователя, курс или урок, сумму и способ оплаты."""
+    payment_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
-        fields = "__all__"
+        fields = ["id", "payment_date", "payment_method", "amount", "user", "course", "payment_url"]
+
+    def get_payment_url(self, instance):
+        product = StripeService.create_product(product_name="Тестовый курс", product_description="Описание тестового продукта")
+        price = StripeService.create_price(product=product, product_price=250)
+        payment_url = StripeService.create_checkout_session(price=price)
+
+        instance.payment_url = payment_url
+        return payment_url
+
+

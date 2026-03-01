@@ -119,9 +119,9 @@ class LessonDestroyAPIView(generics.DestroyAPIView):
 @extend_schema(
     summary="Список платежей",
     description=(
-        "Возвращает список платежей текущего пользователя. "
-        "Поддерживает фильтрацию по курсу, уроку и способу оплаты, "
-        "а также сортировку по дате платежа."
+            "Возвращает список платежей текущего пользователя. "
+            "Поддерживает фильтрацию по курсу, уроку и способу оплаты, "
+            "а также сортировку по дате платежа."
     ),
 )
 class PaymentListAPIView(generics.ListAPIView):
@@ -136,15 +136,25 @@ class PaymentListAPIView(generics.ListAPIView):
     ]
 
 
+class PaymentCreateAPIView(generics.CreateAPIView):
+    queryset = Payment.objects.all()
+    serializer_class = PaymentSerializer
+    permission_classes = [IsAuthenticated]
+
+    # def perform_create(self, serializer):
+    #     serializer.save(user=self.request.user)
+
+
 @extend_schema_view(
     post=extend_schema(
         summary="Переключить подписку на курс",
         description=(
-            "Подписывает текущего пользователя на курс или отменяет подписку, если она уже активна. "
-            "В теле запроса передаётся `course_id`."
+                "Подписывает текущего пользователя на курс или отменяет подписку, если она уже активна. "
+                "В теле запроса передаётся `course_id`."
         ),
         responses={
-            200: OpenApiResponse(description='`{"message": "Подписка оформлена"}` или `{"message": "Подписка отменена"}`'),
+            200: OpenApiResponse(
+                description='`{"message": "Подписка оформлена"}` или `{"message": "Подписка отменена"}`'),
         },
     ),
 )

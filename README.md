@@ -83,3 +83,67 @@ https://stripe.com/docs/terminal/references/testing#standard-test-cards
 
 > **Обратите внимание:** цены при передаче в Stripe указываются в копейках (то есть текущую цену продукта нужно умножить
 > на 100).
+
+
+
+### План решения
+
+Для создания продукта, задания цены и подключения их к checkout session через Python SDK, выполните следующие шаги:
+
+```python
+import stripe
+stripe.api_key = "sk_test_your_key"
+
+# 1. Создание продукта
+product = stripe.Product.create(
+  name="Мой продукт",
+  description="Описание моего продукта",
+  # Опционально можно добавить изображение
+  # images=["https://example.com/image.jpg"]
+)
+
+# 2. Создание цены для продукта
+# Для разового платежа
+price = stripe.Price.create(
+  product=product.id,
+  unit_amount=2000,  # Цена в минимальных единицах валюты (20.00)
+  currency="usd",    # Валюта
+)
+
+# ИЛИ для подписки
+# price = stripe.Price.create(
+#   product=product.id,
+#   unit_amount=2000,
+#   currency="usd",
+#   recurring={"interval": "month"}  # Интервал: day, week, month или year
+# )
+
+# 3. Создание checkout session с созданной ценой
+checkout_session = stripe.checkout.Session.create(
+  payment_method_types=['card'],
+  line_items=[{
+    'price': price.id,  # ID только что созданной цены
+    'quantity': 1,
+  }],
+  mode='payment',  # Или 'subscription' для подписок
+  success_url='https://example.com/success',
+  cancel_url='https://example.com/cancel',
+)
+
+# Получение URL для оплаты
+payment_url = checkout_session.url
+print(f"Ссылка для оплаты: {payment_url}")
+```
+
+Этот код:
+- Создает продукт с названием и описанием
+- Создает цену для этого продукта (в примере 20.00 USD)
+- Создает checkout session, которая использует эту цену
+- Возвращает URL, по которому клиент может совершить оплату
+
+Вы также можете добавить дополнительные параметры:
+- Для продукта: добавить метаданные, изображения, атрибуты
+- Для цены: настроить скидки, налоги, пробные периоды (для подписок)
+- Для checkout session: настроить сбор адреса, адаптивные цены, промокоды и многое другое
+
+Если у вас уже есть продукт и цена в панели Stripe Dashboard, вы можете просто использовать их ID без создания новых.
