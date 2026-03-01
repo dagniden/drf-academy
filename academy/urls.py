@@ -25,4 +25,5 @@ urlpatterns = [
         SubscriptionToggleAPIView.as_view(),
         name="subscription-toggle",
     ),
+    path("payments/create/", PaymentCreateAPIView.as_view(), name="payment-create"),
 ] + router.urls
