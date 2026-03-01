@@ -43,18 +43,44 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class PaymentSerializer(serializers.ModelSerializer):
     """Платёж: содержит пользователя, курс или урок, сумму и способ оплаты."""
-    payment_url = serializers.SerializerMethodField()
 
     class Meta:
         model = Payment
-        fields = ["id", "payment_date", "payment_method", "amount", "user", "course", "payment_url"]
+        fields = [
+            "id",
+            "payment_date",
+            "payment_method",
+            "amount",
+            "user",
+            "course",
+            "lesson",
+            "payment_url",
+        ]
+        read_only_fields = ["id", "payment_date", "payment_url", "user"]
 
-    def get_payment_url(self, instance):
-        product = StripeService.create_product(product_name="Тестовый курс", product_description="Описание тестового продукта")
-        price = StripeService.create_price(product=product, product_price=250)
+    def validate(self, attrs):
+        course = attrs.get("course")
+        lesson = attrs.get("lesson")
+
+        if not course and not lesson:
+            raise serializers.ValidationError("Укажите курс или урок")
+        if course and lesson:
+            raise serializers.ValidationError("Нельзя указать одновременно курс и урок")
+
+        return attrs
+
+    def create(self, validated_data):
+        paid_item = validated_data.get("course") or validated_data.get("lesson")
+        amount_in_cents = int(validated_data["amount"] * 100)
+
+        product = StripeService.create_product(
+            product_name=paid_item.title,
+            product_description=getattr(paid_item, "description", "") or paid_item.title,
+        )
+        price = StripeService.create_price(product=product, product_price=amount_in_cents)
         payment_url = StripeService.create_checkout_session(price=price)
 
-        instance.payment_url = payment_url
-        return payment_url
+        validated_data["payment_url"] = payment_url
+        return super().create(validated_data)
 
 
