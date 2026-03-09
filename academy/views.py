@@ -1,5 +1,6 @@
 from django.shortcuts import get_object_or_404
 from django_filters.rest_framework import DjangoFilterBackend
+from dns.e164 import query
 from drf_spectacular.utils import extend_schema_view, extend_schema, OpenApiResponse, OpenApiParameter
 from rest_framework import generics, viewsets
 from rest_framework.filters import OrderingFilter
@@ -11,6 +12,7 @@ from academy.models import Course, Lesson, Subscription
 from academy.paginators import LessonCoursePagination
 from academy.serializers import (CourseSerializer, LessonSerializer,
                                  PaymentSerializer)
+from academy.tasks import send_information_about_subscription
 from users.models import Payment
 from users.permissions import IsModerator, IsOwner
 
@@ -51,13 +53,21 @@ class CourseViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
+    def perform_update(self, serializer):
+        serializer.save()
+        obj_id = serializer.instance.id
+        queryset = Subscription.objects.filter(course_id=obj_id)
+        recipients = [x.user.email for x in queryset]
+        send_information_about_subscription.delay(recipients)
+
+
     def get_permissions(self):
         if self.action == "create":
             self.permission_classes = [IsAuthenticated, ~IsModerator]
         elif self.action == "destroy":
             self.permission_classes = [IsAuthenticated, ~IsModerator, IsOwner]
         elif self.action in ["update", "retrieve", "list", "partial_update"]:
-            self.permission_classes = [IsAuthenticated, IsModerator | IsOwner]
+            self.permission_classes = [IsAuthenticated]
 
         return super().get_permissions()
 
