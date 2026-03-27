@@ -1,5 +1,134 @@
 # README
 
+## Запуск через Docker Compose
+
+### 1. Подготовка
+
+- Убедитесь, что установлены `Docker` и `Docker Compose`.
+- Скопируйте файл с переменными окружения:
+
+```bash
+cp .env.example .env
+```
+
+Для Windows PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+- При необходимости измените значения в `.env`.
+- По умолчанию приложение публикуется на порт `8001`, чтобы не конфликтовать с локально занятым `8000`.
+
+### 2. Команда запуска
+
+Запустите проект одной командой:
+
+```bash
+docker compose up --build
+```
+
+После старта будут подняты сервисы:
+
+- `db` - PostgreSQL
+- `redis` - Redis
+- `migrate` - применение миграций Django
+- `web` - Django/DRF приложение
+- `celery_worker` - Celery worker
+- `celery_beat` - Celery beat
+
+### 3. Остановка проекта
+
+```bash
+docker compose down
+```
+
+Если нужно остановить проект и удалить том с базой данных:
+
+```bash
+docker compose down -v
+```
+
+## Проверка работоспособности сервисов
+
+### Общий статус контейнеров
+
+```bash
+docker compose ps
+```
+
+В рабочем состоянии сервисы `db`, `redis`, `web`, `celery_worker` и `celery_beat` должны быть в статусе `Up`, а `migrate` - в статусе `Exited (0)`.
+
+### Web / DRF
+
+- Откройте `http://localhost:8001`.
+- Если в проекте подключена схема OpenAPI, можно дополнительно проверить `http://localhost:8001/schema/` или `http://localhost:8001/swagger/`.
+- Логи веб-сервиса:
+
+```bash
+docker compose logs web
+```
+
+### PostgreSQL
+
+- Проверить, что контейнер запущен:
+
+```bash
+docker compose ps db
+```
+
+- Подключиться к БД внутри контейнера:
+
+```bash
+docker compose exec db psql -U academy -d academy
+```
+
+Если в `.env` изменены `POSTGRES_USER` или `POSTGRES_DB`, используйте свои значения.
+
+### Redis
+
+- Проверить ответ Redis:
+
+```bash
+docker compose exec redis redis-cli ping
+```
+
+Ожидаемый ответ:
+
+```text
+PONG
+```
+
+### Celery worker
+
+- Посмотреть логи worker:
+
+```bash
+docker compose logs celery_worker
+```
+
+- В логах должна быть информация о подключении к брокеру и готовности worker к приему задач.
+
+### Celery beat
+
+- Посмотреть логи beat:
+
+```bash
+docker compose logs celery_beat
+```
+
+- В логах должно быть видно, что планировщик запущен и отправляет периодические задачи.
+
+### Django миграции
+
+- Проверить результат сервиса миграций:
+
+```bash
+docker compose logs migrate
+```
+
+- Успешный результат - применение миграций без ошибок и завершение контейнера с кодом `0`.
+
 ## Чек-лист выполнения
 
 - [x] Настроить проект для работы с Celery
