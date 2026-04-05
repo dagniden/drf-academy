@@ -5,6 +5,8 @@ on: [push, pull_request]
 jobs:
   test:
     runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
     steps:
       - name: Check out code
@@ -17,22 +19,22 @@ jobs:
           cache: 'poetry'
 
       - name: Install Poetry
-        run: pip install poetry
+        run: python -m pip install poetry
 
       - name: Configure Poetry
-        run: poetry config virtualenvs.in-project true
+        run: python -m poetry config virtualenvs.in-project true
 
       - name: Install dependencies
-        run: poetry install --with lint --no-interaction --no-root
+        run: python -m poetry install --with lint --no-interaction --no-root
 
       - name: Run linters
         run: |
-          poetry run black --check .
-          poetry run isort --check .
-          poetry run flake8 .
+          python -m poetry run black --check .
+          python -m poetry run isort --check .
+          python -m poetry run flake8 .
 
       - name: Run migrate
-        run: poetry run python manage.py migrate
+        run: python -m poetry run python manage.py migrate
 
       - name: Run tests
-        run: poetry run python manage.py test
+        run: python -m poetry run python manage.py test
