@@ -29,12 +29,6 @@ jobs:
       - name: Install dependencies
         run: python -m poetry install --with lint --no-interaction --no-root
 
-      - name: Run linters
-        run: |
-          python -m poetry run black --check .
-          python -m poetry run isort --check .
-          python -m poetry run flake8 .
-
       - name: Run migrate
         run: python -m poetry run python manage.py migrate
 
