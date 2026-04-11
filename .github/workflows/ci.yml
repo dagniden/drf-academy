@@ -26,11 +26,14 @@ jobs:
         run: pip install poetry
 
       - name: Install dependencies
+        working-directory: ${{ github.workspace }}
         run: |
-          poetry install --no-interaction
+          python -m poetry install --with lint --no-interaction --no-root
 
       - name: Run migrations
-        run: poetry run python manage.py migrate
+        working-directory: ${{ github.workspace }}
+        run: python -m poetry run python manage.py migrate
 
       - name: Run tests
-        run: poetry run python manage.py test
+        working-directory: ${{ github.workspace }}
+        run: python -m poetry run python manage.py test
