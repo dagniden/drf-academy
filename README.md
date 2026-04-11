@@ -1,190 +1,250 @@
-# README
+# DRF Academy
 
-## Запуск через Docker Compose
+## Локальный запуск
 
-### 1. Подготовка
+### Через Docker Compose
 
-- Убедитесь, что установлены `Docker` и `Docker Compose`.
-- Скопируйте файл с переменными окружения:
+1. Скопируйте шаблон окружения:
 
 ```bash
 cp .env.example .env
 ```
 
-Для Windows PowerShell:
+Для PowerShell:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-- При необходимости измените значения в `.env`.
-- По умолчанию приложение публикуется на порт `8001`, чтобы не конфликтовать с локально занятым `8000`.
-
-### 2. Команда запуска
-
-Запустите проект одной командой:
+2. Запустите проект:
 
 ```bash
 docker compose up --build
 ```
 
-После старта будут подняты сервисы:
+3. Приложение будет доступно на `http://localhost:8001`.
 
-- `db` - PostgreSQL
-- `redis` - Redis
-- `migrate` - применение миграций Django
-- `web` - Django/DRF приложение
-- `celery_worker` - Celery worker
-- `celery_beat` - Celery beat
-
-### 3. Остановка проекта
+4. Остановка проекта:
 
 ```bash
 docker compose down
 ```
 
-Если нужно остановить проект и удалить том с базой данных:
+## Переменные окружения
+
+Шаблон лежит в `.env.example`.
+
+Основные переменные:
+
+- `SECRET_KEY`
+- `DEBUG`
+- `ALLOWED_HOSTS`
+- `DB_ENGINE`
+- `DB_NAME`
+- `DB_USER`
+- `DB_PASSWORD`
+- `DB_HOST`
+- `DB_PORT`
+- `REDIS_URL`
+- `STRIPE_API_KEY`
+- `EMAIL_HOST`
+- `EMAIL_HOST_USER`
+- `EMAIL_HOST_PASSWORD`
+- `EMAIL_PORT`
+- `EMAIL_USE_TLS`
+- `DEFAULT_FROM_EMAIL`
+
+Файл `.env` не должен попадать в репозиторий. Для сервера создайте отдельный production-вариант с реальными значениями.
+
+## Настройка удаленного сервера
+
+Ниже пример для Ubuntu.
+
+### 1. Установка пакетов
 
 ```bash
-docker compose down -v
+sudo apt-get update
+sudo apt-get install -y python3 python3-venv python3-pip nginx git
 ```
 
-## Проверка работоспособности сервисов
+Если Gunicorn еще не ставится через проект, его можно установить в серверное окружение после деплоя или добавить в зависимости проекта.
 
-### Общий статус контейнеров
+### 2. Создание пользователя и каталога приложения
 
 ```bash
-docker compose ps
+sudo mkdir -p /home/user/app
+sudo chown -R user:user /home/user/app
 ```
 
-В рабочем состоянии сервисы `db`, `redis`, `web`, `celery_worker` и `celery_beat` должны быть в статусе `Up`, а `migrate` - в статусе `Exited (0)`.
+### 3. Настройка `.env` на сервере
 
-### Web / DRF
+Создайте файл `/home/user/app/.env` и заполните его production-значениями.
 
-- Откройте `http://localhost:8001`.
-- Если в проекте подключена схема OpenAPI, можно дополнительно проверить `http://localhost:8001/schema/` или `http://localhost:8001/swagger/`.
-- Логи веб-сервиса:
+Минимальный пример:
+
+```env
+DEBUG=False
+SECRET_KEY=change-me
+ALLOWED_HOSTS=84.252.136.209,localhost,127.0.0.1
+DB_ENGINE=sqlite
+REDIS_URL=redis://localhost:6379/0
+STRIPE_API_KEY=
+EMAIL_BACKEND=django.core.mail.backends.smtp.EmailBackend
+EMAIL_HOST=
+EMAIL_HOST_USER=
+EMAIL_HOST_PASSWORD=
+EMAIL_PORT=587
+EMAIL_USE_TLS=True
+DEFAULT_FROM_EMAIL=webmaster@localhost
+```
+
+Если используется PostgreSQL, задайте:
+
+```env
+DB_ENGINE=postgres
+DB_NAME=academy
+DB_USER=academy
+DB_PASSWORD=secret
+DB_HOST=127.0.0.1
+DB_PORT=5432
+```
+
+### 4. Systemd для Gunicorn
+
+Пример unit-файла `/etc/systemd/system/drf-academy.service`:
+
+```ini
+[Unit]
+Description=DRF Academy Gunicorn
+After=network.target
+
+[Service]
+User=user
+Group=www-data
+WorkingDirectory=/home/user/app
+EnvironmentFile=/home/user/app/.env
+ExecStart=/home/user/app/venv/bin/python -m gunicorn config.wsgi:application --bind 127.0.0.1:8000
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Применение:
 
 ```bash
-docker compose logs web
+sudo systemctl daemon-reload
+sudo systemctl enable drf-academy.service
+sudo systemctl start drf-academy.service
+sudo systemctl status drf-academy.service
 ```
 
-### PostgreSQL
+### 5. Nginx
 
-- Проверить, что контейнер запущен:
+Пример конфига `/etc/nginx/sites-available/drf-academy`:
+
+```nginx
+server {
+    listen 80;
+    server_name 84.252.136.209;
+
+    location /static/ {
+        alias /home/user/app/static/;
+    }
+
+    location / {
+        proxy_pass http://127.0.0.1:8000;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+```
+
+Активация:
 
 ```bash
-docker compose ps db
+sudo ln -s /etc/nginx/sites-available/drf-academy /etc/nginx/sites-enabled/drf-academy
+sudo nginx -t
+sudo systemctl restart nginx
 ```
 
-- Подключиться к БД внутри контейнера:
+### 6. Безопасность
+
+- используйте вход только по SSH-ключам;
+- отключите парольный вход при необходимости;
+- откройте только нужные порты, обычно `22`, `80`, `443`;
+- приложение не должно слушать внешний интерфейс напрямую, Gunicorn лучше держать на `127.0.0.1`.
+
+Пример с `ufw`:
 
 ```bash
-docker compose exec db psql -U academy -d academy
+sudo ufw allow OpenSSH
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw enable
 ```
 
-Если в `.env` изменены `POSTGRES_USER` или `POSTGRES_DB`, используйте свои значения.
+## GitHub Actions
 
-### Redis
+Workflow лежит в `.github/workflows/ci.yml`.
 
-- Проверить ответ Redis:
+Что делает workflow:
+
+1. запускается на каждый `push` и `pull_request`;
+2. поднимает Python `3.13`;
+3. ставит зависимости через Poetry;
+4. применяет миграции;
+5. запускает тесты;
+6. если тесты успешны и был `push` в `main` или `master`, запускает деплой на сервер.
+
+Ошибки тестов останавливают деплой, потому что job `deploy` зависит от job `test` через `needs: test`.
+
+## Secrets GitHub
+
+Для деплоя в GitHub repository secrets должны быть заданы:
+
+- `SSH_KEY` - приватный SSH-ключ
+- `SSH_USER` - пользователь сервера
+- `SERVER_IP` - IP сервера
+- `DEPLOY_DIR` - каталог проекта на сервере, например `/home/user/app`
+- `APP_SERVICE` - имя systemd-сервиса, например `drf-academy.service`
+
+## Как работает деплой
+
+При успешном `push` в основную ветку workflow:
+
+1. подключается к серверу по SSH;
+2. копирует код через `rsync`;
+3. создает `venv`, если его еще нет;
+4. ставит зависимости через Poetry;
+5. применяет миграции;
+6. выполняет `collectstatic`;
+7. перезапускает systemd-сервис приложения.
+
+## Что проверить перед сдачей
+
+1. Убедиться, что приложение открывается по IP сервера или домену.
+2. Убедиться, что `sudo systemctl status drf-academy.service` показывает активный сервис.
+3. Проверить прохождение workflow в GitHub Actions.
+4. Проверить, что в git не попали `.env`, `.idea`, `.venv`, `__pycache__`.
+5. Создать ветку домашней работы и открыть pull request в `develop`.
+
+## Сдача задания
+
+Для сдачи нужен pull request из вашей рабочей ветки в `develop`.
+
+Перед отправкой полезно проверить:
 
 ```bash
-docker compose exec redis redis-cli ping
+git status
+git diff
 ```
 
-Ожидаемый ответ:
+И убедиться, что в PR входят:
 
-```text
-PONG
-```
-
-### Celery worker
-
-- Посмотреть логи worker:
-
-```bash
-docker compose logs celery_worker
-```
-
-- В логах должна быть информация о подключении к брокеру и готовности worker к приему задач.
-
-### Celery beat
-
-- Посмотреть логи beat:
-
-```bash
-docker compose logs celery_beat
-```
-
-- В логах должно быть видно, что планировщик запущен и отправляет периодические задачи.
-
-### Django миграции
-
-- Проверить результат сервиса миграций:
-
-```bash
-docker compose logs migrate
-```
-
-- Успешный результат - применение миграций без ошибок и завершение контейнера с кодом `0`.
-
-## Чек-лист выполнения
-
-- [x] Настроить проект для работы с Celery
-- [x] Подключить `celery-beat` для периодических задач
-- [x] Вынести настройки Redis в переменные окружения
-- [x] Реализовать асинхронную рассылку писем при обновлении курса
-- [x] Вызывать задачу отправки письма из контроллера обновления курса
-- [x] Отправлять уведомления только подписанным на конкретный курс пользователям
-- [x] *Добавить проверку: уведомление отправляется только если курс не обновлялся более 4 часов*
-- [x] Реализовать периодическую задачу блокировки неактивных пользователей
-- [x] Проверять поле `last_login`
-- [x] Устанавливать `is_active=False`, если пользователь не заходил более месяца
-- [x] Настроить расписание задачи в `celery-beat`
-- [x] Проверить, что `timezone` приложения и Celery совпадают
-
-## Контекст
-
-Каждый веб-сервис стремится отвечать как можно быстрее, поэтому выполнение задач в синхронном режиме часто становится непрактичным. Пользователь не должен ждать, пока, например, отправится письмо и почтовый сервис вернет ответ.
-
-Именно поэтому используются отложенные и фоновые задачи: они сокращают время обработки пользовательского запроса и позволяют отдавать ответ максимально быстро.
-
-## Задание 1
-
-Настройте проект для работы с Celery. Также настройте приложение на работу с `celery-beat` для выполнения периодических задач.
-
-Дополнительно:
-
-- вынесите настройки Redis в переменные окружения.
-
-## Задание 2
-
-Ранее вы реализовали функционал подписки на обновление курсов. Теперь необходимо добавить асинхронную рассылку писем пользователям об обновлении материалов курса.
-
-Чтобы реализовать асинхронную рассылку:
-
-- вызывайте специальную задачу по отправке письма в коде контроллера;
-- вызов задачи должен происходить в контроллере обновления курса;
-- после обновления курса письмо должно отправляться только тем пользователям, которые подписаны именно на этот курс.
-
-### Дополнительное задание
-
-Пользователь может обновлять каждый урок курса отдельно. Добавьте проверку: уведомление отправляется только в том случае, если курс не обновлялся более 4 часов.
-
-## Задание 3
-
-С помощью `celery-beat` реализуйте фоновую задачу, которая:
-
-- проверяет пользователей по дате последнего входа в поле `last_login`;
-- если пользователь не заходил более месяца, блокирует его с помощью флага `is_active`.
-
-Требования:
-
-- задача должна быть периодической;
-- расписание необходимо настроить в `celery-beat`;
-- `timezone` приложения и `timezone` в настройках Celery должны совпадать, чтобы задачи запускались корректно.
-
-## Примечание
-
-Дополнительное задание, помеченное звездочкой, желательно, но не обязательно к выполнению.
+- `.github/workflows/ci.yml`
+- обновленный `README.md`
+- `.env.example`
+- связанные изменения для деплоя

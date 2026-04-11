@@ -1,5 +1,9 @@
 name: CI v1
 
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
 on: [ push, pull_request ]
 
 jobs:
@@ -49,6 +53,7 @@ jobs:
       SSH_HOST: ${{ secrets.SERVER_IP }}
       SSH_USER: ${{ secrets.SSH_USER }}
       DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+      APP_SERVICE: ${{ secrets.APP_SERVICE }}
       SSH_OPTS: -o StrictHostKeyChecking=no
 
     steps:
@@ -95,5 +100,5 @@ jobs:
             python -m poetry install --only main --no-interaction --no-root
             python -m poetry run python manage.py migrate
             python -m poetry run python manage.py collectstatic --noinput
-            sudo systemctl restart myapp.service
+            sudo systemctl restart "$APP_SERVICE"
           EOF
