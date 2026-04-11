@@ -45,6 +45,11 @@ jobs:
     runs-on: ubuntu-latest
     needs: test
     if: github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'master')
+    env:
+      SSH_HOST: ${{ secrets.SERVER_IP }}
+      SSH_USER: ${{ secrets.SSH_USER }}
+      DEPLOY_DIR: ${{ secrets.DEPLOY_DIR }}
+      SSH_OPTS: -o StrictHostKeyChecking=no
 
     steps:
       - name: Check out code
@@ -55,39 +60,40 @@ jobs:
         with:
           ssh-private-key: ${{ secrets.SSH_KEY }}
 
+      - name: Install deploy tools
+        run: |
+          if command -v sudo >/dev/null 2>&1; then
+            sudo apt-get update
+            sudo apt-get install -y rsync openssh-client
+          else
+            apt-get update
+            apt-get install -y rsync openssh-client
+          fi
+
       - name: Copy project files to server
         run: |
-          rsync -avz --delete --exclude '.git' --exclude '__pycache__' -e "ssh -o StrictHostKeyChecking=no" . ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }}:${{ secrets.DEPLOY_DIR }}
+          ssh $SSH_OPTS $SSH_USER@$SSH_HOST "mkdir -p $DEPLOY_DIR"
+          rsync -avz --delete --exclude '.git' --exclude '.github' --exclude '.venv' --exclude '__pycache__' --exclude 'htmlcov' -e "ssh $SSH_OPTS" . $SSH_USER@$SSH_HOST:$DEPLOY_DIR
 
-      - name: Install dependencies on server
+      - name: Deploy on server
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd ${{ secrets.DEPLOY_DIR }}
-            python3 -m venv venv
+          ssh $SSH_OPTS $SSH_USER@$SSH_HOST "bash -se" << EOF
+            cd "$DEPLOY_DIR"
+
+            if ! python3 -m venv --help >/dev/null 2>&1; then
+              sudo apt-get update
+              sudo apt-get install -y python3-venv
+            fi
+
+            if [ ! -x venv/bin/python ]; then
+              python3 -m venv venv
+            fi
+
             source venv/bin/activate
             python -m pip install --upgrade pip
             python -m pip install poetry
             python -m poetry install --only main --no-interaction --no-root
-          EOF
-
-      - name: Apply migrations on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd ${{ secrets.DEPLOY_DIR }}
-            source venv/bin/activate
             python -m poetry run python manage.py migrate
-          EOF
-
-      - name: Collect static files on server
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            cd ${{ secrets.DEPLOY_DIR }}
-            source venv/bin/activate
             python -m poetry run python manage.py collectstatic --noinput
-          EOF
-
-      - name: Restart application
-        run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
             sudo systemctl restart myapp.service
           EOF
