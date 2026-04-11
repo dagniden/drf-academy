@@ -52,7 +52,7 @@ deploy:
 
     - name: Set up SSH
       uses: webfactory/ssh-agent@v0.8.1
-      with
+      with:
         ssh-private-key: ${{ secrets.SSH_KEY }}
 
     - name: Copy project files to server
